@@ -66,11 +66,10 @@ jobs:
           php-version: "8.1"
           tools: composer, phpcs
 
-      - name: Install WPCS via Composer
-        run: |
-          composer global require --dev \
-            wp-coding-standards/wpcs:"^3.0" \
-            dealerdirect/phpcodesniffer-composer-installer:"^1.0"
+      - name: Install WPCS
+        run: composer global require --no-interaction wp-coding-standards/wpcs:"^3.0"
 
       - name: Run PHPCS
-        run: phpcs --standard=WordPress --extensions=php --ignore=vendor,node_modules tradequote-ai/ || true
+        run: |
+          phpcs --config-set installed_paths "$(composer global config home)/vendor/wp-coding-standards/wpcs"
+          phpcs --standard=WordPress --extensions=php --ignore=vendor,node_modules tradequote-ai/ || true

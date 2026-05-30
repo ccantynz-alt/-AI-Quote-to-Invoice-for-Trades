@@ -1,0 +1,18 @@
+{
+  "name": "tradequote-ai/tradequote-ai",
+  "description": "TradeQuote AI WordPress Plugin",
+  "type": "wordpress-plugin",
+  "require": {
+    "php": ">=8.1",
+    "mpdf/mpdf": "^8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "TradeQuoteAI\\": "includes/"
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "vendor-dir": "vendor"
+  }
+}

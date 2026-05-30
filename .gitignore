@@ -1,0 +1,6 @@
+tradequote-ai/vendor/
+tradequote-ai/node_modules/
+tradequote-ai/admin/js/app/*.js
+tradequote-ai/admin/js/app/*.asset.php
+*.DS_Store
+*.log

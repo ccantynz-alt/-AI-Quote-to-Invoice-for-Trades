@@ -64,9 +64,13 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.1"
-          tools: composer, phpcs, wp-coding-standards/wpcs
+          tools: composer, phpcs
+
+      - name: Install WPCS via Composer
+        run: |
+          composer global require --dev \
+            wp-coding-standards/wpcs:"^3.0" \
+            dealerdirect/phpcodesniffer-composer-installer:"^1.0"
 
       - name: Run PHPCS
-        run: |
-          phpcs --config-set installed_paths $(wp-coding-standards location)
-          phpcs --standard=WordPress --extensions=php --ignore=vendor,node_modules tradequote-ai/ || true
+        run: phpcs --standard=WordPress --extensions=php --ignore=vendor,node_modules tradequote-ai/ || true

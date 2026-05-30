@@ -44,7 +44,6 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           ZIP_NAME="tradequote-ai-${VERSION}.zip"
 
-          # Build clean package directory.
           mkdir -p dist/tradequote-ai
 
           rsync -a tradequote-ai/ dist/tradequote-ai/ \
@@ -56,6 +55,7 @@ jobs:
             --exclude='composer.lock' \
             --exclude='package.json' \
             --exclude='package-lock.json' \
+            --exclude='.npmrc' \
             --exclude='*.map' \
             --exclude='phpcs.xml' \
             --exclude='tests'

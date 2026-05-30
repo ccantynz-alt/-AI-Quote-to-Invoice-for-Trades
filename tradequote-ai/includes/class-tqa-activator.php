@@ -30,10 +30,13 @@ class TQA_Activator {
 			total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
 			status ENUM('draft','sent','accepted','declined','expired') NOT NULL DEFAULT 'draft',
 			notes TEXT NOT NULL DEFAULT '',
+			acceptance_token VARCHAR(64) DEFAULT NULL,
 			valid_until DATE DEFAULT NULL,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 			PRIMARY KEY (id),
+			UNIQUE KEY quote_number (quote_number),
+			UNIQUE KEY acceptance_token (acceptance_token),
 			KEY customer_id (customer_id),
 			KEY status (status)
 		) $charset;";
@@ -52,6 +55,7 @@ class TQA_Activator {
 			paid_at DATETIME DEFAULT NULL,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY (id),
+			UNIQUE KEY invoice_number (invoice_number),
 			KEY customer_id (customer_id),
 			KEY quote_id (quote_id),
 			KEY status (status)
@@ -62,8 +66,14 @@ class TQA_Activator {
 		dbDelta( $quotes );
 		dbDelta( $invoices );
 
-		add_option( 'tqa_version', TQA_VERSION );
-		add_option( 'tqa_quote_counter', 0 );
-		add_option( 'tqa_invoice_counter', 0 );
+		if ( ! get_option( 'tqa_version' ) ) {
+			add_option( 'tqa_version', TQA_VERSION );
+			add_option( 'tqa_quote_counter', 0 );
+			add_option( 'tqa_invoice_counter', 0 );
+			// Flag to redirect to settings on first activation.
+			set_transient( 'tqa_activation_redirect', true, 30 );
+		} else {
+			update_option( 'tqa_version', TQA_VERSION );
+		}
 	}
 }

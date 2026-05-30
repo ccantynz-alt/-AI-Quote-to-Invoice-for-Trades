@@ -9,10 +9,19 @@ class TQA_Quote {
 	}
 
 	private static function next_number() {
+		global $wpdb;
+		// Atomic increment using DB transaction avoids race conditions.
+		$wpdb->query( 'START TRANSACTION' );
 		$counter = (int) get_option( 'tqa_quote_counter', 0 ) + 1;
 		update_option( 'tqa_quote_counter', $counter );
+		$wpdb->query( 'COMMIT' );
+
 		$prefix = TQA_Settings::get( 'quote_prefix', 'Q-' );
 		return $prefix . date( 'Y' ) . '-' . str_pad( $counter, 4, '0', STR_PAD_LEFT );
+	}
+
+	private static function generate_token() {
+		return bin2hex( random_bytes( 24 ) );
 	}
 
 	public static function create( array $data ) {
@@ -28,19 +37,20 @@ class TQA_Quote {
 		$valid_until = isset( $data['valid_until'] ) ? $data['valid_until'] : date( 'Y-m-d', strtotime( "+{$valid_days} days" ) );
 
 		$wpdb->insert( self::table(), array(
-			'quote_number'    => self::next_number(),
-			'customer_id'     => (int) ( $data['customer_id'] ?? 0 ),
-			'job_description' => sanitize_textarea_field( $data['job_description'] ?? '' ),
-			'line_items'      => $line_items,
-			'subtotal'        => $subtotal,
-			'tax_rate'        => $tax_rate,
-			'tax_amount'      => $tax_amount,
-			'total'           => $total,
-			'status'          => 'draft',
-			'notes'           => sanitize_textarea_field( $data['notes'] ?? '' ),
-			'valid_until'     => $valid_until,
-			'created_at'      => current_time( 'mysql' ),
-			'updated_at'      => current_time( 'mysql' ),
+			'quote_number'     => self::next_number(),
+			'customer_id'      => (int) ( $data['customer_id'] ?? 0 ),
+			'job_description'  => sanitize_textarea_field( $data['job_description'] ?? '' ),
+			'line_items'       => $line_items,
+			'subtotal'         => $subtotal,
+			'tax_rate'         => $tax_rate,
+			'tax_amount'       => $tax_amount,
+			'total'            => $total,
+			'status'           => 'draft',
+			'notes'            => sanitize_textarea_field( $data['notes'] ?? '' ),
+			'acceptance_token' => self::generate_token(),
+			'valid_until'      => $valid_until,
+			'created_at'       => current_time( 'mysql' ),
+			'updated_at'       => current_time( 'mysql' ),
 		) );
 
 		return $wpdb->insert_id;
@@ -55,13 +65,14 @@ class TQA_Quote {
 			$update['line_items'] = wp_json_encode( $data['line_items'] );
 		}
 		if ( isset( $data['subtotal'] ) ) {
-			$subtotal               = (float) $data['subtotal'];
-			$tax_rate               = (float) ( $data['tax_rate'] ?? self::get( $id )->tax_rate );
-			$tax_amount             = round( $subtotal * ( $tax_rate / 100 ), 2 );
-			$update['subtotal']     = $subtotal;
-			$update['tax_rate']     = $tax_rate;
-			$update['tax_amount']   = $tax_amount;
-			$update['total']        = round( $subtotal + $tax_amount, 2 );
+			$subtotal             = (float) $data['subtotal'];
+			$current              = self::get( $id );
+			$tax_rate             = (float) ( $data['tax_rate'] ?? ( $current ? $current->tax_rate : 0 ) );
+			$tax_amount           = round( $subtotal * ( $tax_rate / 100 ), 2 );
+			$update['subtotal']   = $subtotal;
+			$update['tax_rate']   = $tax_rate;
+			$update['tax_amount'] = $tax_amount;
+			$update['total']      = round( $subtotal + $tax_amount, 2 );
 		}
 		if ( isset( $data['status'] ) ) {
 			$update['status'] = sanitize_text_field( $data['status'] );
@@ -96,6 +107,24 @@ class TQA_Quote {
 		return $row;
 	}
 
+	public static function get_by_token( string $token ) {
+		global $wpdb;
+		$row = $wpdb->get_row( $wpdb->prepare(
+			'SELECT * FROM ' . self::table() . ' WHERE acceptance_token = %s',
+			$token
+		) );
+		if ( $row && $row->line_items ) {
+			$row->line_items = json_decode( $row->line_items, true );
+		}
+		return $row;
+	}
+
+	public static function get_acceptance_url( int $id ) {
+		$quote = self::get( $id );
+		if ( ! $quote || empty( $quote->acceptance_token ) ) return '';
+		return add_query_arg( 'tqa_accept', $quote->acceptance_token, home_url( '/' ) );
+	}
+
 	public static function get_all( array $args = array() ) {
 		global $wpdb;
 		$where  = array( '1=1' );
@@ -109,11 +138,18 @@ class TQA_Quote {
 			$where[]  = 'q.customer_id = %d';
 			$values[] = (int) $args['customer_id'];
 		}
+		if ( ! empty( $args['search'] ) ) {
+			$like     = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+			$where[]  = '(q.quote_number LIKE %s OR c.name LIKE %s OR q.job_description LIKE %s)';
+			$values[] = $like;
+			$values[] = $like;
+			$values[] = $like;
+		}
 
 		$limit  = isset( $args['limit'] ) ? (int) $args['limit'] : 50;
 		$offset = isset( $args['offset'] ) ? (int) $args['offset'] : 0;
 
-		$sql = 'SELECT q.*, c.name AS customer_name, c.email AS customer_email
+		$sql = 'SELECT q.*, c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone
 				FROM ' . self::table() . ' q
 				LEFT JOIN ' . $wpdb->prefix . 'tqa_customers c ON q.customer_id = c.id
 				WHERE ' . implode( ' AND ', $where ) . '
@@ -143,9 +179,7 @@ class TQA_Quote {
 	}
 
 	public static function check_quota() {
-		// Returns true if user is within free quota.
-		$count = self::count_this_month();
-		return $count < TQA_FREE_QUOTA;
+		return tqa_quota_remaining() > 0;
 	}
 
 	public static function delete( int $id ) {

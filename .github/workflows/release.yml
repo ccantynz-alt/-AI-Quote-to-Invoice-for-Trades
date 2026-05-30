@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & package plugin zip
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: tradequote-ai/package-lock.json
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          tools: composer
+
+      - name: Install JS deps & build
+        working-directory: tradequote-ai
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install PHP deps (production only)
+        working-directory: tradequote-ai
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Create plugin zip
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          ZIP_NAME="tradequote-ai-${VERSION}.zip"
+
+          # Build clean package directory.
+          mkdir -p dist/tradequote-ai
+
+          rsync -a tradequote-ai/ dist/tradequote-ai/ \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='src' \
+            --exclude='.github' \
+            --exclude='composer.json' \
+            --exclude='composer.lock' \
+            --exclude='package.json' \
+            --exclude='package-lock.json' \
+            --exclude='*.map' \
+            --exclude='phpcs.xml' \
+            --exclude='tests'
+
+          cd dist
+          zip -r "../${ZIP_NAME}" tradequote-ai/
+          cd ..
+
+          echo "ZIP=${ZIP_NAME}" >> $GITHUB_ENV
+
+      - name: Upload zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zip
+          path: "*.zip"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "*.zip"
+          generate_release_notes: true
+          name: "TradeQuote AI ${{ github.ref_name }}"

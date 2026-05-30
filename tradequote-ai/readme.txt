@@ -1,6 +1,6 @@
 === TradeQuote AI ===
 Contributors: tradequoteai
-Tags: invoice, quote, trades, ai, business, pdf, crm, plumber, builder, electrician
+Tags: quote, invoice, trades, ai, pdf
 Requires at least: 6.0
 Tested up to: 6.7
 Requires PHP: 8.1
@@ -38,7 +38,29 @@ Stop spending an hour on every quote. Describe the job in plain English, let AI 
 
 * **Free** — 5 quotes/month, includes AI builder, PDF, email, customer DB
 * **Pro** ($29/month) — Unlimited quotes, invoice conversion, job tracker, custom branding
-* **Business** ($59/month) — Everything Pro + multi-user, priority support
+* **Business** ($59/month) — Everything Pro + priority support
+
+== External Services ==
+
+This plugin connects to the following external services:
+
+= Anthropic Claude API =
+
+When you generate a quote, your job description is sent to the Anthropic Claude API to produce line items and pricing suggestions. This requires a Claude API key which you provide yourself in Settings (Bring Your Own Key — your key, your costs, your data).
+
+* Service: Anthropic Claude API
+* Data sent: The job description text you type into the quote builder
+* When: Only when you click "Generate Quote"
+* Privacy policy: https://www.anthropic.com/privacy
+* Terms of service: https://www.anthropic.com/legal/consumer-terms
+
+= Freemius =
+
+This plugin uses Freemius to manage optional paid plan upgrades. Freemius may collect basic site information (site URL, WordPress version, admin email) if you opt in to usage tracking during activation. Opting in is voluntary — the plugin operates fully in free mode without it.
+
+* Service: Freemius
+* Privacy policy: https://freemius.com/privacy/
+* Terms of service: https://freemius.com/terms/
 
 == Installation ==
 
@@ -55,7 +77,7 @@ Yes. TradeQuote AI uses a Bring Your Own Key (BYOK) model so you control your AI
 
 = Is my data stored securely? =
 
-All data is stored in your own WordPress database. Your API key is stored encrypted in WordPress options.
+All customer and quote data is stored in your own WordPress database. Your Claude API key is stored in WordPress options and is only ever transmitted to the Anthropic API.
 
 = What countries does it support? =
 

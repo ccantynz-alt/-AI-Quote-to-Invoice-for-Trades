@@ -2,17 +2,28 @@
   "name": "tradequote-ai/tradequote-ai",
   "description": "TradeQuote AI WordPress Plugin",
   "type": "wordpress-plugin",
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/Freemius/wordpress-sdk",
+      "no-api": true
+    }
+  ],
   "require": {
     "php": ">=8.1",
-    "mpdf/mpdf": "^8.2"
-  },
-  "autoload": {
-    "psr-4": {
-      "TradeQuoteAI\\": "includes/"
-    }
+    "mpdf/mpdf": "^8.2",
+    "freemius/wordpress-sdk": "^2.7"
   },
   "config": {
     "optimize-autoloader": true,
-    "vendor-dir": "vendor"
+    "vendor-dir": "vendor",
+    "allow-plugins": {
+      "composer/installers": true
+    }
+  },
+  "autoload": {
+    "classmap": [
+      "includes/"
+    ]
   }
 }

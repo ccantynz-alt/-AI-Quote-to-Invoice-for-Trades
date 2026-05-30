@@ -1,0 +1,72 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [main, "claude/**", "feature/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  js-build:
+    name: Build React bundle
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tradequote-ai
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: tradequote-ai/package-lock.json
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload built bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-bundle
+          path: tradequote-ai/admin/js/app/
+          retention-days: 7
+
+  php-lint:
+    name: PHP syntax check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ["8.1", "8.2", "8.3"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: parallel-lint
+
+      - name: Run PHP parallel-lint
+        run: parallel-lint --exclude vendor --exclude node_modules tradequote-ai/
+
+  wpcs:
+    name: WordPress Coding Standards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          tools: composer, phpcs, wp-coding-standards/wpcs
+
+      - name: Run PHPCS
+        run: |
+          phpcs --config-set installed_paths $(wp-coding-standards location)
+          phpcs --standard=WordPress --extensions=php --ignore=vendor,node_modules tradequote-ai/ || true

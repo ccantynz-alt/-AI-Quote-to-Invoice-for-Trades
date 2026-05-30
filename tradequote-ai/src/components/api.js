@@ -10,17 +10,19 @@ async function request(path, options = {}) {
     ...options,
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
+  if (!res.ok) throw new Error(data.error || data.message || `Request failed (HTTP ${res.status})`);
   return data;
 }
 
 export const api = {
-  get:    (path)         => request(path),
-  post:   (path, body)   => request(path, { method: 'POST',   body: JSON.stringify(body) }),
-  put:    (path, body)   => request(path, { method: 'PUT',    body: JSON.stringify(body) }),
-  delete: (path)         => request(path, { method: 'DELETE' }),
+  get:    (path)       => request(path),
+  post:   (path, body) => request(path, { method: 'POST',   body: JSON.stringify(body) }),
+  put:    (path, body) => request(path, { method: 'PUT',    body: JSON.stringify(body) }),
+  delete: (path)       => request(path, { method: 'DELETE' }),
 
-  generateQuote:    (desc)        => api.post('ai/generate', { job_description: desc }),
+  generateQuote:    (desc, trade_type = 'general') => api.post('ai/generate', { job_description: desc, trade_type }),
+  testApiKey:       (key)         => api.post('ai/test-key', { api_key: key }),
+
   getQuotes:        (params = {}) => api.get('quotes?' + new URLSearchParams(params)),
   createQuote:      (data)        => api.post('quotes', data),
   updateQuote:      (id, data)    => api.put(`quotes/${id}`, data),
@@ -40,7 +42,7 @@ export const api = {
   updateCustomer: (id, data)    => api.put(`customers/${id}`, data),
   deleteCustomer: (id)          => api.delete(`customers/${id}`),
 
-  getStats:    () => api.get('stats'),
-  getSettings: () => api.get('settings'),
+  getStats:    ()     => api.get('stats'),
+  getSettings: ()     => api.get('settings'),
   saveSettings:(data) => api.post('settings', data),
 };

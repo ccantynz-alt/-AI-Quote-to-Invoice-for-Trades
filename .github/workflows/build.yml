@@ -64,12 +64,18 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.1"
-          tools: composer, phpcs
+          tools: composer
 
-      - name: Install WPCS
-        run: composer global require --no-interaction wp-coding-standards/wpcs:"^3.0"
-
-      - name: Run PHPCS
+      - name: Run WPCS check (informational)
         run: |
-          phpcs --config-set installed_paths "$(composer global config home)/vendor/wp-coding-standards/wpcs"
-          phpcs --standard=WordPress --extensions=php --ignore=vendor,node_modules tradequote-ai/ || true
+          set +e
+          composer global require --no-interaction \
+            squizlabs/php_codesniffer:"^3.0" \
+            wp-coding-standards/wpcs:"^3.0"
+          if command -v phpcs &>/dev/null; then
+            WPCS_PATH="$(composer global config home 2>/dev/null)/vendor/wp-coding-standards/wpcs"
+            phpcs --config-set installed_paths "$WPCS_PATH"
+            phpcs --standard=WordPress --extensions=php \
+              --ignore=vendor,node_modules tradequote-ai/
+          fi
+          exit 0

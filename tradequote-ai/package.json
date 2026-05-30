@@ -9,9 +9,10 @@
     "lint": "wp-scripts lint-js src"
   },
   "dependencies": {
-    "@wordpress/element": "^5.0.0"
+    "@wordpress/element": "^5.0.0",
+    "ajv": "^8.20.0"
   },
   "devDependencies": {
-    "@wordpress/scripts": "^27.0.0"
+    "@wordpress/scripts": "^30.27.0"
   }
 }

@@ -1,0 +1,17 @@
+{
+  "name": "tradequote-ai",
+  "version": "1.0.0",
+  "description": "TradeQuote AI WordPress Plugin",
+  "private": true,
+  "scripts": {
+    "build": "wp-scripts build src/index.js --output-path=admin/js/app",
+    "start": "wp-scripts start src/index.js --output-path=admin/js/app",
+    "lint": "wp-scripts lint-js src"
+  },
+  "dependencies": {
+    "@wordpress/element": "^5.0.0"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "^27.0.0"
+  }
+}
